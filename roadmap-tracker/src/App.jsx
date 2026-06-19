@@ -549,12 +549,12 @@ function App() {
           </div>
           <div>
             <h1 className="text-xl font-bold font-display tracking-tight text-white flex items-center gap-2">
-              HIMANSHU'S ROADMAP
+              THE CODING GRIND
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-brass-glow/20 border border-brass-light/30 text-brass-light font-sans font-medium uppercase tracking-wide">
-                16-Week AI/ML Eng
+                Week 1-16
               </span>
             </h1>
-            <p className="text-xs text-zinc-400">Delhi NCR Target • Consistently Pass Coding Rounds & Interviews</p>
+            <p className="text-xs text-zinc-400">Master DSA Patterns, CS Fundamentals, and RAG Architecture</p>
           </div>
         </div>
 
