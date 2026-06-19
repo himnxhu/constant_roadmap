@@ -1,0 +1,17 @@
+# Dependency directories
+node_modules/
+roadmap-tracker/node_modules/
+
+# Build outputs
+dist/
+roadmap-tracker/dist/
+
+# Local reference directories
+galaxy/
+
+# IDE and system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.local
