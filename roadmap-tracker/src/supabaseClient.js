@@ -12,6 +12,13 @@ const isConfigured =
   !supabaseAnonKey.includes('placeholder') &&
   supabaseUrl !== 'https://your-supabase-project-id.supabase.co';
 
+console.log("⚡ [THE CODING GRIND] Supabase Config Diagnostic:", {
+  urlLength: supabaseUrl ? supabaseUrl.length : 0,
+  hasKey: !!supabaseAnonKey,
+  keyLength: supabaseAnonKey ? supabaseAnonKey.length : 0,
+  isConfigured
+});
+
 export const supabase = isConfigured 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
