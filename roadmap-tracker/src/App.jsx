@@ -44,6 +44,37 @@ function App() {
   const [authError, setAuthError] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // Floating Toast Notifications state
+  const [toastMessage, setToastMessage] = useState(null);
+
+  // Custom toast helper
+  const showToast = (message) => {
+    setToastMessage(message);
+  };
+
+  // Auto-hide toast notification after 4 seconds
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => {
+      setToastMessage(null);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
+  // Dismiss toast notification if user switches window/tab (focus loss)
+  useEffect(() => {
+    const handleBlur = () => {
+      setToastMessage(null);
+    };
+    window.addEventListener('blur', handleBlur);
+    return () => window.removeEventListener('blur', handleBlur);
+  }, []);
+
+  // Dismiss toast when user switches active app tab option
+  useEffect(() => {
+    setToastMessage(null);
+  }, [activeTab]);
+
   // Local state initialized from LocalStorage (will be overridden on login)
   const [completedTasks, setCompletedTasks] = useState(() => {
     const saved = localStorage.getItem('himanshu_roadmap_tasks');
@@ -251,12 +282,12 @@ function App() {
         setAuthEmail('');
         setAuthPassword('');
       } else {
-        const { error } = await supabase.auth.signUp({
+         const { error } = await supabase.auth.signUp({
           email: authEmail,
           password: authPassword
         });
         if (error) throw error;
-        alert('Registration successful! Please check your email for the confirmation link.');
+        showToast('Registration successful! Please check your email for the confirmation link.');
         setAuthModalOpen(false);
         setAuthEmail('');
         setAuthPassword('');
@@ -493,7 +524,7 @@ function App() {
           setIsSyncing(false);
         }
       }
-      alert("All progress reset to zero.");
+      showToast("All progress reset to zero.");
     }
   };
 
@@ -1843,6 +1874,22 @@ function App() {
           </button>
         </div>
       </footer>
+
+      {/* CUSTOM FLOATING TOAST NOTIFICATION */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 animate-pulse-short">
+          <div className="flex items-center gap-2.5 px-4 py-3 bg-zinc-950/95 border border-brass-light/40 text-xs text-zinc-200 rounded-xl shadow-[0_0_20px_rgba(217,119,6,0.25)] backdrop-blur-md font-sans">
+            <span className="w-2 h-2 rounded-full bg-brass-light animate-ping" />
+            <span>{toastMessage}</span>
+            <button 
+              onClick={() => setToastMessage(null)}
+              className="ml-2.5 text-zinc-500 hover:text-white font-mono text-sm leading-none cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

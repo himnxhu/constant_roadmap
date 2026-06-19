@@ -70,9 +70,7 @@
 .glass-reflection {
   background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.02) 50%, transparent 50%);
   pointer-events: none;
-}
-
-/* Custom Checkbox Uiverse.io style */
+}/* Custom Checkbox Uiverse.io style */
 .uiverse-checkbox-container {
   display: block;
   position: relative;
@@ -86,8 +84,12 @@
   position: absolute;
   opacity: 0;
   cursor: pointer;
-  height: 0;
-  width: 0;
+  height: 18px;
+  width: 18px;
+  top: 2px;
+  left: 0;
+  margin: 0;
+  z-index: 1;
 }
 
 .checkmark {
@@ -112,6 +114,12 @@
   background-color: #d97706;
   border-color: #d97706;
   box-shadow: 0 0 10px rgba(217, 119, 6, 0.6);
+}
+
+/* Keyboard outline when navigated using TAB */
+.uiverse-checkbox-container input:focus-visible ~ .checkmark {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
 }
 
 .checkmark:after {
