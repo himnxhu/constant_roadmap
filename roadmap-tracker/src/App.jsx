@@ -542,8 +542,8 @@ function App() {
       )}
 
       {/* GLOWING HEADER */}
-      <header className="sticky top-0 z-40 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-40 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md px-6 py-4 flex flex-col lg:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-3 w-full lg:w-auto justify-start">
           <div className="p-2.5 rounded-lg bg-brass-glow/10 border border-brass-light/30 shadow-[0_0_15px_rgba(217,119,6,0.15)] glow-animation">
             <Target className="w-6 h-6 text-brass-light" />
           </div>
@@ -558,9 +558,9 @@ function App() {
           </div>
         </div>
 
-        {/* TABS NAVIGATION */}
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          <nav className="flex flex-wrap gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg">
+        {/* TABS NAVIGATION IN TOP CENTER */}
+        <div className="flex justify-center w-full lg:flex-1">
+          <nav className="flex flex-wrap gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg justify-center">
             <button 
               onClick={() => setActiveTab('dashboard')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
@@ -602,10 +602,12 @@ function App() {
               <BookOpen className="w-3.5 h-3.5" /> Study Library
             </button>
           </nav>
+        </div>
 
-          {/* Database & Profile Section */}
+        {/* Database & Profile Section on the Right */}
+        <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
           {isSupabaseConfigured && (
-            <div className="flex items-center gap-2">
+            <>
               {user ? (
                 <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-lg p-1.5 pl-3">
                   <span className="text-[10px] font-mono text-zinc-400 truncate max-w-[120px]">{user.email}</span>
@@ -628,7 +630,7 @@ function App() {
                   <LogIn className="w-3.5 h-3.5" /> Cloud Sync
                 </button>
               )}
-            </div>
+            </>
           )}
         </div>
       </header>
