@@ -1,16 +1,54 @@
-# React + Vite
+# ⚡ The Coding Grind - 16-Week AI/ML Engineer Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This application tracks progress through a comprehensive 16-week study roadmap to prepare for Generative AI and Machine Learning Engineering roles.
 
-Currently, two official plugins are available:
+It features an interactive **Aetheric Steam Gauge** visual indicator, checklists for daily tasks, weekly review logging, a DSA pattern logging tool with weak pattern tracking, and a curated study library of resources.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🛠️ Tech Stack & Setup
 
-## React Compiler
+- **Frontend**: React (Vite) + Tailwind CSS v4 + Lucide Icons
+- **Database & Sync**: Supabase (Database, Auth, Row Level Security)
+- **Deployment**: Vercel
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 📁 Directory Structure
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `roadmap-tracker/`: Vite React tracking application code.
+- `supabase/schema.sql`: Database schema initialization script.
+- `.agents/`: Custom agent skills and workspace rules.
+- `.gitignore`: Configured ignores for `.env` credentials, dependencies, and reference folders.
+
+---
+
+## 🚀 How to Run Locally
+
+1. Navigate to the app directory:
+   ```bash
+   cd roadmap-tracker
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up environment variables:
+   Copy `.env.example` to `.env` and fill in your Supabase credentials:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_public_anon_key
+   ```
+4. Start the local server:
+   ```bash
+   npm run dev
+   ```
+5. Open **http://localhost:5173/** in your browser.
+
+---
+
+## ☁️ Deploying to Vercel
+
+The Vercel deployment is configured to build the app from the `roadmap-tracker/` root directory. 
+
+If redeploying:
+1. Push any commits to your linked GitHub repository.
+2. Vercel will automatically build and deploy the changes using the configured `roadmap-tracker/` Root Directory settings.
