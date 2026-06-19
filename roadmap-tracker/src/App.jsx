@@ -542,25 +542,25 @@ function App() {
       )}
 
       {/* GLOWING HEADER */}
-      <header className="sticky top-0 z-40 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md px-6 py-4 flex flex-col lg:flex-row justify-between items-center gap-4">
+      <header className="sticky top-0 z-40 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md px-4 py-3 md:px-6 md:py-4 flex flex-col lg:flex-row justify-between items-center gap-3 lg:gap-4">
         <div className="flex items-center gap-3 w-full lg:w-auto justify-start">
-          <div className="p-2.5 rounded-lg bg-brass-glow/10 border border-brass-light/30 shadow-[0_0_15px_rgba(217,119,6,0.15)] glow-animation">
-            <Target className="w-6 h-6 text-brass-light" />
+          <div className="p-2 rounded-lg md:p-2.5 bg-brass-glow/10 border border-brass-light/30 shadow-[0_0_15px_rgba(217,119,6,0.15)] glow-animation">
+            <Target className="w-5 h-5 md:w-6 md:h-6 text-brass-light" />
           </div>
           <div>
-            <h1 className="text-xl font-bold font-display tracking-tight text-white flex items-center gap-2">
+            <h1 className="text-lg md:text-xl font-bold font-display tracking-tight text-white flex items-center gap-2">
               THE CODING GRIND
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-brass-glow/20 border border-brass-light/30 text-brass-light font-sans font-medium uppercase tracking-wide">
+              <span className="text-[10px] md:text-xs px-2 py-0.5 md:px-2.5 md:py-0.5 rounded-full bg-brass-glow/20 border border-brass-light/30 text-brass-light font-sans font-medium uppercase tracking-wide">
                 Week 1-16
               </span>
             </h1>
-            <p className="text-xs text-zinc-400">Master DSA Patterns, CS Fundamentals, and RAG Architecture</p>
+            <p className="text-[10px] md:text-xs text-zinc-400">Master DSA Patterns, CS Fundamentals, and RAG Architecture</p>
           </div>
         </div>
 
         {/* TABS NAVIGATION IN TOP CENTER */}
-        <div className="flex justify-center w-full lg:flex-1 lg:-ml-24">
-          <nav className="flex flex-wrap gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg justify-center">
+        <div className="flex justify-start lg:justify-center w-full lg:flex-1 lg:-ml-24 overflow-x-auto no-scrollbar scroll-smooth max-w-full">
+          <nav className="flex flex-nowrap gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg justify-start lg:justify-center min-w-max">
             <button 
               onClick={() => setActiveTab('dashboard')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
@@ -634,6 +634,7 @@ function App() {
           )}
         </div>
       </header>
+
 
       {/* CORE CONTAINER */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
@@ -923,8 +924,8 @@ function App() {
           <div className="space-y-6">
             
             {/* WEEK SELECTOR ACCORDION MENU */}
-            <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-4 flex flex-wrap gap-2 items-center justify-between shadow-lg backdrop-blur-md">
-              <div className="flex items-center gap-2">
+            <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-center justify-between shadow-lg backdrop-blur-md">
+              <div className="flex items-center gap-2 justify-center sm:justify-start w-full sm:w-auto">
                 <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 font-display">Active Week:</span>
                 <div className="flex items-center gap-1.5">
                   <button 
@@ -948,7 +949,7 @@ function App() {
               </div>
 
               {/* Progress for selected week */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 justify-center sm:justify-end w-full sm:w-auto">
                 <span className="text-xs font-mono text-zinc-400">Week Progress:</span>
                 <div className="w-32 h-2.5 bg-zinc-900 border border-zinc-800/60 rounded-full overflow-hidden flex">
                   <div 
@@ -966,13 +967,18 @@ function App() {
                 
                 {/* Theme & Milestones Details Banner */}
                 <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-6 shadow-lg relative overflow-hidden backdrop-blur-md">
-                  <div className="absolute top-0 right-0 p-3 bg-zinc-900/60 border-l border-b border-zinc-800 text-[10px] text-brass-light font-mono rounded-bl-lg tracking-wider uppercase">
+                  <div className="absolute top-0 right-0 p-3 bg-zinc-900/60 border-l border-b border-zinc-800 text-[10px] text-brass-light font-mono rounded-bl-lg tracking-wider uppercase hidden sm:block">
                     {week.phase}
                   </div>
                   <div className="space-y-4 max-w-4xl">
                     <div className="space-y-1">
-                      <span className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase block">Weekly Core Theme</span>
-                      <h2 className="text-lg font-bold font-display text-white leading-snug">{week.theme}</h2>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase block">Weekly Core Theme</span>
+                        <span className="text-[9px] px-2 py-0.5 rounded bg-zinc-900 text-brass-light font-mono tracking-wider uppercase border border-zinc-800 sm:hidden">
+                          {week.phase}
+                        </span>
+                      </div>
+                      <h2 className="text-base sm:text-lg font-bold font-display text-white leading-snug">{week.theme}</h2>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-zinc-800/60">
@@ -991,6 +997,7 @@ function App() {
                     </div>
                   </div>
                 </div>
+
 
                 {/* THE 6-DAY MON-SAT TASKS MATRIX GRID */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1209,9 +1216,11 @@ function App() {
               </div>
             </div>
 
-            {/* WEEK LOG TABLE LISTING */}
+            {/* WEEK LOG TABLE LISTING - TABLE ON DESKTOP, CARDS ON MOBILE */}
             <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl overflow-hidden shadow-xl backdrop-blur-md">
-              <div className="overflow-x-auto">
+              
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-900/60 border-b border-zinc-850 text-[10px] text-zinc-500 font-mono uppercase tracking-wider">
@@ -1255,15 +1264,61 @@ function App() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile Card View */}
+              <div className="block md:hidden divide-y divide-zinc-900">
+                {ROADMAP_WEEKS.map((w) => (
+                  <div 
+                    key={w.weekNumber}
+                    onClick={() => {
+                      setSelectedWeek(w.weekNumber);
+                      setActiveTab('daily');
+                    }}
+                    className="p-4 space-y-3 active:bg-zinc-900/40 transition-colors cursor-pointer"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold font-mono text-brass-light text-xs">Week {w.weekNumber}</span>
+                        <span className="text-[8px] px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 font-mono tracking-wider uppercase border border-zinc-805">
+                          {w.phase}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-brass-light text-xs font-semibold">{getWeekProgress(w.weekNumber)}%</span>
+                        <div className="w-12 h-1.5 bg-zinc-900 border border-zinc-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-brass-glow" style={{ width: `${getWeekProgress(w.weekNumber)}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <h4 className="font-medium text-white text-xs leading-snug">{w.theme}</h4>
+                      <p className="text-[10px] text-zinc-500 italic">Target: {w.milestone}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-900 text-[10.5px]">
+                      <div className="space-y-0.5">
+                        <span className="text-[9px] text-purple-400 font-mono uppercase block">DSA Target</span>
+                        <p className="text-zinc-300 line-clamp-2 leading-relaxed">{w.dsaFocus}</p>
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="text-[9px] text-cyan-400 font-mono uppercase block">CS Target</span>
+                        <p className="text-zinc-300 line-clamp-2 leading-relaxed">{w.csFocus}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* SUNDAY PROGRESS REVIEW HISTORICAL TABLE */}
+            {/* SUNDAY PROGRESS REVIEW HISTORICAL SUMMARY */}
             <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-6 shadow-xl backdrop-blur-md">
               <h3 className="text-sm font-bold font-display text-white mb-4 tracking-wider uppercase flex items-center gap-2">
                 <Target className="w-4 h-4 text-brass-light" /> Himanshu's Sunday Review History
               </h3>
 
-              <div className="overflow-x-auto">
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-900 border-b border-zinc-800 text-[9px] text-zinc-500 font-mono uppercase tracking-wider">
@@ -1311,6 +1366,69 @@ function App() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile Card List View */}
+              <div className="block md:hidden space-y-3">
+                {weeklyLogs.map((log) => {
+                  const hasData = log.dsaProblems || log.unaidedPct || log.csTopics || log.notes || log.projectMilestone === 'Y' || log.mockDone === 'Y';
+                  if (!hasData) return null; // Only show active entries on mobile to save vertical space
+                  return (
+                    <div key={log.week} className="p-4 bg-zinc-900/30 border border-zinc-805 rounded-xl space-y-2.5">
+                      <div className="flex justify-between items-center border-b border-zinc-800/80 pb-2">
+                        <span className="font-bold font-mono text-zinc-400 text-xs">Week {log.week}</span>
+                        <div className="flex gap-1.5">
+                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold font-mono ${
+                            log.projectMilestone === 'Y' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-zinc-950 text-zinc-600'
+                          }`}>
+                            PROJ: {log.projectMilestone}
+                          </span>
+                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold font-mono ${
+                            log.mockDone === 'Y' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'bg-zinc-950 text-zinc-600'
+                          }`}>
+                            MOCK: {log.mockDone}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-2 text-[10px] font-mono text-zinc-400">
+                        <div>
+                          <span className="text-[8px] text-zinc-500 block uppercase tracking-wider">DSA Solved</span>
+                          <span className="text-white font-bold">{log.dsaProblems || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[8px] text-zinc-500 block uppercase tracking-wider">Unaided Rate</span>
+                          <span className="text-brass-light font-bold">{log.unaidedPct ? `${log.unaidedPct}%` : '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[8px] text-zinc-500 block uppercase tracking-wider">Confidence</span>
+                          <span className="text-amber-400">
+                            {log.confidence ? Array.from({ length: log.confidence }).map(() => '★').join('') : '-'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {log.csTopics && (
+                        <div className="text-[11px] text-zinc-300">
+                          <span className="text-[8px] text-zinc-500 font-mono block uppercase tracking-wider">CS Topics</span>
+                          {log.csTopics}
+                        </div>
+                      )}
+                      
+                      {log.notes && (
+                        <div className="text-[11px] text-zinc-400 italic bg-zinc-950/40 p-2.5 rounded border border-zinc-900 leading-relaxed">
+                          {log.notes}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {weeklyLogs.filter(log => log.dsaProblems || log.unaidedPct || log.csTopics || log.notes || log.projectMilestone === 'Y' || log.mockDone === 'Y').length === 0 && (
+                  <div className="py-6 text-center text-xs text-zinc-500 font-mono">
+                    No Sunday reviews logged yet.
+                  </div>
+                )}
+              </div>
+
             </div>
 
           </div>
