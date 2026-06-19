@@ -560,7 +560,7 @@ function App() {
       {!isSupabaseConfigured && (
         <div className="w-full bg-amber-950/40 border-b border-amber-900/60 px-4 py-2 text-center text-xs text-amber-400 flex items-center justify-center gap-2">
           <CloudOff className="w-3.5 h-3.5" /> 
-          <span>Running in <strong>offline Local Storage mode</strong>. Provide your database keys in <code>.env</code> to activate cloud sync.</span>
+          <span>Running in <strong>offline Local Storage mode</strong>. Provide your database keys in <code>.env</code> to activate the connect option.</span>
         </div>
       )}
 
@@ -658,7 +658,7 @@ function App() {
                   }}
                   className="flex items-center gap-1.5 px-3 py-2 border border-zinc-800 hover:border-zinc-700 bg-zinc-900 rounded-lg text-xs font-medium text-brass-light hover:bg-zinc-800 transition-all cursor-pointer"
                 >
-                  <LogIn className="w-3.5 h-3.5" /> Cloud Sync
+                  <LogIn className="w-3.5 h-3.5" /> Connect
                 </button>
               )}
             </>
