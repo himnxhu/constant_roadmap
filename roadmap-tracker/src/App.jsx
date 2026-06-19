@@ -4,6 +4,7 @@ import {
   ROADMAP_PHASES, 
   ROADMAP_WEEKS 
 } from './data/roadmapData';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { 
   BookOpen, 
   CheckSquare, 
@@ -20,7 +21,13 @@ import {
   Target,
   FileText,
   Award,
-  RefreshCw
+  RefreshCw,
+  LogIn,
+  LogOut,
+  User,
+  CloudLightning,
+  CloudOff,
+  Database
 } from 'lucide-react';
 import './App.css';
 
@@ -28,26 +35,31 @@ function App() {
   // Navigation Tabs: 'dashboard' | 'daily' | 'weeks' | 'dsa-log' | 'sources'
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Roadmap track states - stored in localStorage
+  // Authentication states
+  const [user, setUser] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Local state initialized from LocalStorage (will be overridden on login)
   const [completedTasks, setCompletedTasks] = useState(() => {
     const saved = localStorage.getItem('himanshu_roadmap_tasks');
     return saved ? JSON.parse(saved) : {};
   });
 
-  // Selected week for Daily Tracker
   const [selectedWeek, setSelectedWeek] = useState(1);
 
-  // DSA Pattern Log State
   const [dsaLogs, setDsaLogs] = useState(() => {
     const saved = localStorage.getItem('himanshu_roadmap_dsa_logs');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Weekly Sunday review logs
   const [weeklyLogs, setWeeklyLogs] = useState(() => {
     const saved = localStorage.getItem('himanshu_roadmap_weekly_logs');
     if (saved) return JSON.parse(saved);
-    // Initialize empty log rows for Weeks 1-16
     return Array.from({ length: 16 }, (_, i) => ({
       week: i + 1,
       dsaProblems: '',
@@ -60,7 +72,7 @@ function App() {
     }));
   });
 
-  // Form input states for DSA Pattern Log
+  // Form input states
   const [dsaForm, setDsaForm] = useState({
     problemName: '',
     pattern: 'Arrays & Strings',
@@ -70,25 +82,200 @@ function App() {
     notes: ''
   });
 
-  // Steam particle animation state
   const [steamParticles, setSteamParticles] = useState([]);
   const steamContainerRef = useRef(null);
 
-  // Save states to localStorage on changes
+  // Listen to Auth State Changes & Fetch Sync
   useEffect(() => {
-    localStorage.setItem('himanshu_roadmap_tasks', JSON.stringify(completedTasks));
-  }, [completedTasks]);
+    if (!supabase) return;
+    
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        syncFromDatabase();
+      }
+    });
+
+    // Listen to changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        syncFromDatabase();
+      } else {
+        // Clear variables, fallback to local storage
+        const savedTasks = localStorage.getItem('himanshu_roadmap_tasks');
+        const savedDsa = localStorage.getItem('himanshu_roadmap_dsa_logs');
+        const savedWeek = localStorage.getItem('himanshu_roadmap_weekly_logs');
+
+        setCompletedTasks(savedTasks ? JSON.parse(savedTasks) : {});
+        setDsaLogs(savedDsa ? JSON.parse(savedDsa) : []);
+        setWeeklyLogs(savedWeek ? JSON.parse(savedWeek) : Array.from({ length: 16 }, (_, i) => ({
+          week: i + 1,
+          dsaProblems: '',
+          unaidedPct: '',
+          csTopics: '',
+          projectMilestone: 'N',
+          mockDone: 'N',
+          confidence: '',
+          notes: ''
+        })));
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Save states locally ONLY if not logged in (to prevent overwriting database on loading states)
+  useEffect(() => {
+    if (!user) {
+      localStorage.setItem('himanshu_roadmap_tasks', JSON.stringify(completedTasks));
+    }
+  }, [completedTasks, user]);
 
   useEffect(() => {
-    localStorage.setItem('himanshu_roadmap_dsa_logs', JSON.stringify(dsaLogs));
-  }, [dsaLogs]);
+    if (!user) {
+      localStorage.setItem('himanshu_roadmap_dsa_logs', JSON.stringify(dsaLogs));
+    }
+  }, [dsaLogs, user]);
 
   useEffect(() => {
-    localStorage.setItem('himanshu_roadmap_weekly_logs', JSON.stringify(weeklyLogs));
-  }, [weeklyLogs]);
+    if (!user) {
+      localStorage.setItem('himanshu_roadmap_weekly_logs', JSON.stringify(weeklyLogs));
+    }
+  }, [weeklyLogs, user]);
+
+  // Pull all data from Supabase
+  const syncFromDatabase = async () => {
+    if (!supabase) return;
+    setIsSyncing(true);
+    try {
+      // 1. Fetch completed tasks
+      const { data: tasksData, error: tasksErr } = await supabase
+        .from('completed_tasks')
+        .select('task_id');
+      
+      if (tasksData && !tasksErr) {
+        const taskMap = {};
+        tasksData.forEach(t => {
+          taskMap[t.task_id] = true;
+        });
+        setCompletedTasks(taskMap);
+      }
+
+      // 2. Fetch DSA attempts
+      const { data: dsaData, error: dsaErr } = await supabase
+        .from('dsa_attempts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (dsaData && !dsaErr) {
+        const formattedDsa = dsaData.map(d => ({
+          id: d.id,
+          problemName: d.problem_name,
+          pattern: d.pattern,
+          difficulty: d.difficulty,
+          solvedUnaided: d.solved_unaided,
+          timeTaken: d.time_taken ? String(d.time_taken) : '',
+          notes: d.notes || '',
+          week: d.week,
+          date: d.date
+        }));
+        setDsaLogs(formattedDsa);
+      }
+
+      // 3. Fetch weekly reviews
+      const { data: weeklyData, error: weeklyErr } = await supabase
+        .from('weekly_logs')
+        .select('*')
+        .order('week', { ascending: true });
+
+      if (weeklyData && !weeklyErr) {
+        const logsTemplate = Array.from({ length: 16 }, (_, i) => ({
+          week: i + 1,
+          dsaProblems: '',
+          unaidedPct: '',
+          csTopics: '',
+          projectMilestone: 'N',
+          mockDone: 'N',
+          confidence: '',
+          notes: ''
+        }));
+        
+        weeklyData.forEach(w => {
+          const index = w.week - 1;
+          if (logsTemplate[index]) {
+            logsTemplate[index] = {
+              week: w.week,
+              dsaProblems: w.dsa_problems ? String(w.dsa_problems) : '',
+              unaidedPct: w.unaided_pct ? String(w.unaided_pct) : '',
+              csTopics: w.cs_topics || '',
+              projectMilestone: w.project_milestone,
+              mockDone: w.mock_done,
+              confidence: w.confidence ? String(w.confidence) : '',
+              notes: w.notes || ''
+            };
+          }
+        });
+        setWeeklyLogs(logsTemplate);
+      }
+    } catch (err) {
+      console.error("Supabase pull error:", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Auth Submit Handler
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    setIsSyncing(true);
+
+    if (!supabase) {
+      setAuthError('Supabase is not configured yet.');
+      setIsSyncing(false);
+      return;
+    }
+
+    try {
+      if (authMode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: authEmail,
+          password: authPassword
+        });
+        if (error) throw error;
+        setAuthModalOpen(false);
+        setAuthEmail('');
+        setAuthPassword('');
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email: authEmail,
+          password: authPassword
+        });
+        if (error) throw error;
+        alert('Registration successful! Please check your email for the confirmation link.');
+        setAuthModalOpen(false);
+        setAuthEmail('');
+        setAuthPassword('');
+      }
+    } catch (err) {
+      setAuthError(err.message || 'Authentication failed');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+  };
 
   // Task stats calculations
-  const totalTasksCount = 16 * 6 * 3; // 16 weeks, 6 days, 3 tracks = 288 tasks
+  const totalTasksCount = 16 * 6 * 3; 
   const completedTasksCount = Object.values(completedTasks).filter(Boolean).length;
   const overallProgressPercent = totalTasksCount > 0 
     ? Math.round((completedTasksCount / totalTasksCount) * 100) 
@@ -118,7 +305,7 @@ function App() {
   };
 
   // Toggle checklist tasks
-  const toggleTask = (weekNum, dayName, track) => {
+  const toggleTask = async (weekNum, dayName, track) => {
     const taskId = `w${weekNum}-${dayName}-${track}`;
     const isNowCompleted = !completedTasks[taskId];
     
@@ -127,13 +314,30 @@ function App() {
       [taskId]: isNowCompleted
     }));
 
-    // Trigger steam particle effect on completion
     if (isNowCompleted) {
       triggerSteamEffect();
     }
+
+    // Sync database
+    if (supabase && user) {
+      try {
+        if (isNowCompleted) {
+          await supabase
+            .from('completed_tasks')
+            .insert([{ user_id: user.id, task_id: taskId }]);
+        } else {
+          await supabase
+            .from('completed_tasks')
+            .delete()
+            .match({ user_id: user.id, task_id: taskId });
+        }
+      } catch (err) {
+        console.error("Database update task error:", err);
+      }
+    }
   };
 
-  // Steam particles animation trigger
+  // Steam particle animation trigger
   const triggerSteamEffect = () => {
     const newParticles = Array.from({ length: 8 }).map((_, i) => ({
       id: Date.now() + i,
@@ -144,7 +348,6 @@ function App() {
 
     setSteamParticles(prev => [...prev, ...newParticles]);
 
-    // Cleanup particles
     setTimeout(() => {
       setSteamParticles(prev => prev.slice(8));
     }, 1500);
@@ -156,32 +359,74 @@ function App() {
     setDsaForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleAddDsaLog = (e) => {
+  const handleAddDsaLog = async (e) => {
     e.preventDefault();
     if (!dsaForm.problemName.trim()) return;
 
-    const newLog = {
+    const newLogId = Date.now().toString();
+    const newLogDate = new Date().toLocaleDateString();
+
+    const localLog = {
       ...dsaForm,
-      id: Date.now().toString(),
-      date: new Date().toLocaleDateString(),
+      id: newLogId,
+      date: newLogDate,
       week: selectedWeek
     };
 
-    setDsaLogs(prev => [newLog, ...prev]);
+    setDsaLogs(prev => [localLog, ...prev]);
+    triggerSteamEffect();
+
+    // Sync to Supabase
+    if (supabase && user) {
+      try {
+        const { data, error } = await supabase
+          .from('dsa_attempts')
+          .insert([{
+            user_id: user.id,
+            problem_name: dsaForm.problemName,
+            pattern: dsaForm.pattern,
+            difficulty: dsaForm.difficulty,
+            solved_unaided: dsaForm.solvedUnaided,
+            time_taken: dsaForm.timeTaken ? parseInt(dsaForm.timeTaken) : null,
+            notes: dsaForm.notes,
+            week: selectedWeek,
+            date: newLogDate
+          }])
+          .select();
+        
+        // Swap local timestamp id with actual DB generated uuid
+        if (data && data[0] && !error) {
+          setDsaLogs(prev => prev.map(l => l.id === newLogId ? { ...l, id: data[0].id } : l));
+        }
+      } catch (err) {
+        console.error("Database insert DSA error:", err);
+      }
+    }
+
     setDsaForm(prev => ({
       ...prev,
       problemName: '',
       timeTaken: '',
       notes: ''
     }));
-    triggerSteamEffect();
   };
 
-  const handleDeleteDsaLog = (id) => {
+  const handleDeleteDsaLog = async (id) => {
     setDsaLogs(prev => prev.filter(log => log.id !== id));
+
+    if (supabase && user) {
+      try {
+        await supabase
+          .from('dsa_attempts')
+          .delete()
+          .match({ user_id: user.id, id: id });
+      } catch (err) {
+        console.error("Database delete DSA error:", err);
+      }
+    }
   };
 
-  // Sunday weekly progress edit handler
+  // Sunday weekly progress edit handler & auto-sync
   const handleWeeklyLogChange = (weekNum, field, value) => {
     setWeeklyLogs(prev => prev.map(log => {
       if (log.week === weekNum) {
@@ -191,9 +436,34 @@ function App() {
     }));
   };
 
-  // Export & reset controls
-  const resetAllData = () => {
-    if (window.confirm("Are you sure you want to reset all tracking progress, logs, and notes? This action cannot be undone.")) {
+  const handleWeeklyLogBlur = async (weekNum) => {
+    if (!supabase || !user) return;
+    
+    const currentWeekLog = weeklyLogs.find(wl => wl.week === weekNum);
+    if (!currentWeekLog) return;
+
+    try {
+      await supabase
+        .from('weekly_logs')
+        .upsert({
+          user_id: user.id,
+          week: weekNum,
+          dsa_problems: currentWeekLog.dsaProblems ? parseInt(currentWeekLog.dsaProblems) : null,
+          unaided_pct: currentWeekLog.unaidedPct ? parseInt(currentWeekLog.unaidedPct) : null,
+          cs_topics: currentWeekLog.csTopics,
+          project_milestone: currentWeekLog.projectMilestone,
+          mock_done: currentWeekLog.mockDone,
+          confidence: currentWeekLog.confidence ? parseInt(currentWeekLog.confidence) : null,
+          notes: currentWeekLog.notes
+        }, { onConflict: 'user_id,week' });
+    } catch (err) {
+      console.error("Database upsert weekly log error:", err);
+    }
+  };
+
+  // Factory reset state
+  const resetAllData = async () => {
+    if (window.confirm("Are you sure you want to reset all tracking progress, logs, and notes? This will wipe your local cache and online database if logged in.")) {
       setCompletedTasks({});
       setDsaLogs([]);
       setWeeklyLogs(Array.from({ length: 16 }, (_, i) => ({
@@ -206,9 +476,23 @@ function App() {
         confidence: '',
         notes: ''
       })));
+
       localStorage.removeItem('himanshu_roadmap_tasks');
       localStorage.removeItem('himanshu_roadmap_dsa_logs');
       localStorage.removeItem('himanshu_roadmap_weekly_logs');
+
+      if (supabase && user) {
+        try {
+          setIsSyncing(true);
+          await supabase.from('completed_tasks').delete().match({ user_id: user.id });
+          await supabase.from('dsa_attempts').delete().match({ user_id: user.id });
+          await supabase.from('weekly_logs').delete().match({ user_id: user.id });
+        } catch (err) {
+          console.error("Database factory wipe error:", err);
+        } finally {
+          setIsSyncing(false);
+        }
+      }
       alert("All progress reset to zero.");
     }
   };
@@ -233,7 +517,7 @@ function App() {
       name,
       total: data.total,
       unaidedRate: Math.round((data.unaided / data.total) * 100)
-    })).sort((a, b) => a.unaidedRate - b.unaidedRate); // worst first
+    })).sort((a, b) => a.unaidedRate - b.unaidedRate);
   };
 
   const patternStats = getPatternStats();
@@ -241,6 +525,22 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen bg-cyber-bg text-gray-200">
       
+      {/* STATUS NOTIFICATION BANNER */}
+      {!isSupabaseConfigured && (
+        <div className="w-full bg-amber-950/40 border-b border-amber-900/60 px-4 py-2 text-center text-xs text-amber-400 flex items-center justify-center gap-2">
+          <CloudOff className="w-3.5 h-3.5" /> 
+          <span>Running in <strong>offline Local Storage mode</strong>. Provide your database keys in <code>.env</code> to activate cloud sync.</span>
+        </div>
+      )}
+
+      {isSupabaseConfigured && user && (
+        <div className="w-full bg-emerald-950/30 border-b border-emerald-900/40 px-4 py-1.5 text-center text-[10px] text-emerald-400 tracking-wider uppercase font-mono flex items-center justify-center gap-2">
+          <CloudLightning className="w-3.5 h-3.5 animate-pulse" /> 
+          <span>Connected to Supabase Database • Syncing Active</span>
+          {isSyncing && <span className="animate-spin inline-block w-2.5 h-2.5 border border-emerald-400 border-t-transparent rounded-full ml-1" />}
+        </div>
+      )}
+
       {/* GLOWING HEADER */}
       <header className="sticky top-0 z-40 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-3">
@@ -259,48 +559,78 @@ function App() {
         </div>
 
         {/* TABS NAVIGATION */}
-        <nav className="flex flex-wrap gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg">
-          <button 
-            onClick={() => setActiveTab('dashboard')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              activeTab === 'dashboard' ? 'bg-brass-glow/20 text-brass-light border-b border-brass-light/60 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <BarChart2 className="w-3.5 h-3.5" /> Engine Room
-          </button>
-          <button 
-            onClick={() => setActiveTab('daily')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              activeTab === 'daily' ? 'bg-brass-glow/20 text-brass-light border-b border-brass-light/60 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <CheckSquare className="w-3.5 h-3.5" /> Daily Tracker
-          </button>
-          <button 
-            onClick={() => setActiveTab('weeks')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              activeTab === 'weeks' ? 'bg-brass-glow/20 text-brass-light border-b border-brass-light/60 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <Calendar className="w-3.5 h-3.5" /> Weekly Overview
-          </button>
-          <button 
-            onClick={() => setActiveTab('dsa-log')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              activeTab === 'dsa-log' ? 'bg-brass-glow/20 text-brass-light border-b border-brass-light/60 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5" /> DSA Log
-          </button>
-          <button 
-            onClick={() => setActiveTab('sources')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              activeTab === 'sources' ? 'bg-brass-glow/20 text-brass-light border-b border-brass-light/60 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <BookOpen className="w-3.5 h-3.5" /> Study Library
-          </button>
-        </nav>
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <nav className="flex flex-wrap gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg">
+            <button 
+              onClick={() => setActiveTab('dashboard')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                activeTab === 'dashboard' ? 'bg-brass-glow/20 text-brass-light border-b border-brass-light/60 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <BarChart2 className="w-3.5 h-3.5" /> Engine Room
+            </button>
+            <button 
+              onClick={() => setActiveTab('daily')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                activeTab === 'daily' ? 'bg-brass-glow/20 text-brass-light border-b border-brass-light/60 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <CheckSquare className="w-3.5 h-3.5" /> Daily Tracker
+            </button>
+            <button 
+              onClick={() => setActiveTab('weeks')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                activeTab === 'weeks' ? 'bg-brass-glow/20 text-brass-light border-b border-brass-light/60 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" /> Weekly Overview
+            </button>
+            <button 
+              onClick={() => setActiveTab('dsa-log')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                activeTab === 'dsa-log' ? 'bg-brass-glow/20 text-brass-light border-b border-brass-light/60 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" /> DSA Log
+            </button>
+            <button 
+              onClick={() => setActiveTab('sources')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                activeTab === 'sources' ? 'bg-brass-glow/20 text-brass-light border-b border-brass-light/60 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5" /> Study Library
+            </button>
+          </nav>
+
+          {/* Database & Profile Section */}
+          {isSupabaseConfigured && (
+            <div className="flex items-center gap-2">
+              {user ? (
+                <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-lg p-1.5 pl-3">
+                  <span className="text-[10px] font-mono text-zinc-400 truncate max-w-[120px]">{user.email}</span>
+                  <button 
+                    onClick={handleLogout} 
+                    className="p-1 rounded text-zinc-400 hover:text-red-400 hover:bg-zinc-800 transition-all cursor-pointer"
+                    title="Sign Out"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => {
+                    setAuthMode('login');
+                    setAuthModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 border border-zinc-800 hover:border-zinc-700 bg-zinc-900 rounded-lg text-xs font-medium text-brass-light hover:bg-zinc-800 transition-all cursor-pointer"
+                >
+                  <LogIn className="w-3.5 h-3.5" /> Cloud Sync
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </header>
 
       {/* CORE CONTAINER */}
@@ -340,7 +670,7 @@ function App() {
 
                   {/* Calibration ticks */}
                   {Array.from({ length: 11 }).map((_, i) => {
-                    const angle = -120 + i * 24; // sweep of 240 degrees
+                    const angle = -120 + i * 24; 
                     const cos = Math.cos((angle - 90) * Math.PI / 180);
                     const sin = Math.sin((angle - 90) * Math.PI / 180);
                     const startX = 100 + cos * 74;
@@ -431,7 +761,6 @@ function App() {
             <div className="lg:col-span-2 space-y-6">
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Stat Cards from Uiverse styles */}
                 <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-5 shadow-lg relative flex flex-col justify-between backdrop-blur-md">
                   <div>
                     <span className="text-[10px] text-zinc-500 font-mono tracking-wider block">DSA TARGET</span>
@@ -676,7 +1005,6 @@ function App() {
 
                       {/* Tracks Section */}
                       <div className="space-y-3.5 flex-1">
-                        {/* DSA Track */}
                         <div className="flex items-start gap-3">
                           <label className="uiverse-checkbox-container mt-0.5 flex-shrink-0">
                             <input 
@@ -692,7 +1020,6 @@ function App() {
                           </div>
                         </div>
 
-                        {/* CS Tracks */}
                         <div className="flex items-start gap-3">
                           <label className="uiverse-checkbox-container mt-0.5 flex-shrink-0">
                             <input 
@@ -708,7 +1035,6 @@ function App() {
                           </div>
                         </div>
 
-                        {/* Project Track */}
                         <div className="flex items-start gap-3">
                           <label className="uiverse-checkbox-container mt-0.5 flex-shrink-0">
                             <input 
@@ -763,6 +1089,7 @@ function App() {
                                 placeholder="15"
                                 value={log.dsaProblems}
                                 onChange={(e) => handleWeeklyLogChange(selectedWeek, 'dsaProblems', e.target.value)}
+                                onBlur={() => handleWeeklyLogBlur(selectedWeek)}
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-brass-light font-mono"
                               />
                             </div>
@@ -773,6 +1100,7 @@ function App() {
                                 placeholder="80"
                                 value={log.unaidedPct}
                                 onChange={(e) => handleWeeklyLogChange(selectedWeek, 'unaidedPct', e.target.value)}
+                                onBlur={() => handleWeeklyLogBlur(selectedWeek)}
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-brass-light font-mono"
                               />
                             </div>
@@ -785,6 +1113,7 @@ function App() {
                               placeholder="OS Deadlocks, SQL Joins"
                               value={log.csTopics}
                               onChange={(e) => handleWeeklyLogChange(selectedWeek, 'csTopics', e.target.value)}
+                              onBlur={() => handleWeeklyLogBlur(selectedWeek)}
                               className="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-brass-light"
                             />
                           </div>
@@ -795,6 +1124,7 @@ function App() {
                               <select 
                                 value={log.projectMilestone}
                                 onChange={(e) => handleWeeklyLogChange(selectedWeek, 'projectMilestone', e.target.value)}
+                                onBlur={() => handleWeeklyLogBlur(selectedWeek)}
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-xs text-brass-light focus:outline-none focus:border-brass-light font-mono"
                               >
                                 <option value="Y">Yes (Y)</option>
@@ -806,6 +1136,7 @@ function App() {
                               <select 
                                 value={log.mockDone}
                                 onChange={(e) => handleWeeklyLogChange(selectedWeek, 'mockDone', e.target.value)}
+                                onBlur={() => handleWeeklyLogBlur(selectedWeek)}
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-xs text-brass-light focus:outline-none focus:border-brass-light font-mono"
                               >
                                 <option value="Y">Yes (Y)</option>
@@ -823,6 +1154,7 @@ function App() {
                               placeholder="5"
                               value={log.confidence}
                               onChange={(e) => handleWeeklyLogChange(selectedWeek, 'confidence', e.target.value)}
+                              onBlur={() => handleWeeklyLogBlur(selectedWeek)}
                               className="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-brass-light font-mono"
                             />
                           </div>
@@ -834,6 +1166,7 @@ function App() {
                               value={log.notes}
                               rows="2"
                               onChange={(e) => handleWeeklyLogChange(selectedWeek, 'notes', e.target.value)}
+                              onBlur={() => handleWeeklyLogBlur(selectedWeek)}
                               className="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-brass-light font-sans resize-none"
                             />
                           </div>
@@ -853,7 +1186,6 @@ function App() {
         {activeTab === 'weeks' && (
           <div className="space-y-6">
             
-            {/* OVERVIEW INTRO BANNER */}
             <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-6 shadow-lg backdrop-blur-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <h2 className="text-lg font-bold font-display text-white">Weekly Roadmap Blueprint</h2>
@@ -986,7 +1318,7 @@ function App() {
         {activeTab === 'dsa-log' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* LOG ENTRY FORM (Uiverse style) */}
+            {/* LOG ENTRY FORM */}
             <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-6 shadow-lg flex flex-col justify-between backdrop-blur-md">
               <div className="space-y-4">
                 <div>
@@ -1098,7 +1430,7 @@ function App() {
               </div>
             </div>
 
-            {/* LOG HISTORY LIST TABLE (Uiverse style) */}
+            {/* LOG HISTORY LIST TABLE */}
             <div className="lg:col-span-2 bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-6 shadow-xl backdrop-blur-md flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="flex justify-between items-center pb-3 border-b border-zinc-800/60">
@@ -1172,7 +1504,6 @@ function App() {
         {activeTab === 'sources' && (
           <div className="space-y-6">
             
-            {/* Blueprint Overview banner */}
             <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-6 shadow-lg backdrop-blur-md">
               <h2 className="text-lg font-bold font-display text-white">Study Library & Learning Center</h2>
               <p className="text-xs text-zinc-400 mt-1">Consolidated learning material sources. Stick to these, avoid switching resources mid-way.</p>
@@ -1307,6 +1638,78 @@ function App() {
         )}
 
       </main>
+
+      {/* AUTHENTICATION MODAL */}
+      {authModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm bg-zinc-950 border border-zinc-800 rounded-xl p-6 shadow-2xl space-y-4 relative">
+            <button 
+              onClick={() => setAuthModalOpen(false)}
+              className="absolute top-4 right-4 text-zinc-500 hover:text-white font-mono text-sm cursor-pointer"
+            >
+              ✕
+            </button>
+
+            <div className="text-center space-y-1">
+              <h3 className="text-md font-bold font-display text-white tracking-wider uppercase">
+                {authMode === 'login' ? 'Cloud Sign In' : 'Create Account'}
+              </h3>
+              <p className="text-[10px] text-zinc-500 tracking-wider font-mono">
+                {authMode === 'login' ? 'SYNC YOUR STUDY PROGRESS TO CLOUD' : 'START BACKING UP YOUR MILESTONES'}
+              </p>
+            </div>
+
+            <form onSubmit={handleAuthSubmit} className="space-y-4 text-xs">
+              {authError && (
+                <div className="p-3 bg-red-950/20 border border-red-900/40 text-red-400 rounded text-center leading-relaxed">
+                  {authError}
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-[9px] text-zinc-500 font-mono uppercase block">Email Address</label>
+                <input 
+                  type="email" 
+                  required 
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  placeholder="himanshu@engineer.com"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brass-light"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] text-zinc-500 font-mono uppercase block">Password</label>
+                <input 
+                  type="password" 
+                  required 
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brass-light"
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={isSyncing}
+                className="w-full py-2.5 bg-brass-glow text-white font-bold rounded-lg hover:bg-brass-glow/90 active:scale-95 transition-all shadow-[0_0_15px_rgba(217,119,6,0.2)] disabled:opacity-50 cursor-pointer"
+              >
+                {isSyncing ? 'Connecting...' : authMode === 'login' ? 'Sign In' : 'Sign Up'}
+              </button>
+            </form>
+
+            <div className="text-center pt-2 border-t border-zinc-900">
+              <button 
+                onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
+                className="text-[10px] text-brass-light font-medium hover:underline cursor-pointer"
+              >
+                {authMode === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FOOTER CONTROLS */}
       <footer className="w-full border-t border-zinc-850 bg-zinc-950 py-6 px-6 mt-12 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-zinc-500">
