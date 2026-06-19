@@ -559,7 +559,7 @@ function App() {
         </div>
 
         {/* TABS NAVIGATION IN TOP CENTER */}
-        <div className="flex justify-center w-full lg:flex-1">
+        <div className="flex justify-center w-full lg:flex-1 lg:-ml-24">
           <nav className="flex flex-wrap gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg justify-center">
             <button 
               onClick={() => setActiveTab('dashboard')}
