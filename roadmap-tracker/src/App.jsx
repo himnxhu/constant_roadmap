@@ -205,9 +205,20 @@ function App() {
   };
 
   const getContributionGridData = () => {
-    if (!leetcodeStats || !leetcodeStats.submissionCalendar) return [];
+    if (!leetcodeStats) return [];
     
-    const cal = leetcodeStats.submissionCalendar;
+    let cal = leetcodeStats.submissionCalendar;
+    if (typeof cal === 'string') {
+      try {
+        cal = JSON.parse(cal);
+      } catch (e) {
+        cal = {};
+      }
+    }
+    if (!cal || typeof cal !== 'object') {
+      cal = {};
+    }
+    
     const totalDays = 26 * 7;
     const gridData = [];
     
@@ -249,6 +260,17 @@ function App() {
     }
     
     return gridData;
+  };
+
+  const getWeeklyDsaCount = (difficulty) => {
+    if (!Array.isArray(dsaLogs)) return 0;
+    return dsaLogs.filter(log => 
+      log &&
+      log.week === selectedWeek && 
+      log.difficulty &&
+      typeof log.difficulty === 'string' &&
+      log.difficulty.toLowerCase() === difficulty.toLowerCase()
+    ).length;
   };
 
   const handleUpdateGoal = (type, action) => {
@@ -2138,7 +2160,7 @@ function App() {
                         <div className="nixie-tube rounded-xl p-4 flex flex-col justify-between min-h-[100px]">
                           <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider">Global Ranking</span>
                           <span className="text-xl font-bold tracking-widest text-orange-400 font-mono mt-2 block select-none">
-                            {leetcodeStats.ranking.toLocaleString()}
+                            {leetcodeStats.ranking ? Number(leetcodeStats.ranking).toLocaleString() : 'N/A'}
                           </span>
                           <div className="glass-reflection absolute inset-0 rounded-xl" />
                         </div>
@@ -2178,12 +2200,12 @@ function App() {
                           <div className="space-y-1.5">
                             <div className="flex justify-between text-xs font-mono">
                               <span className="text-green-400 font-bold uppercase text-[10px]">Easy</span>
-                              <span className="text-zinc-400">{leetcodeStats.easySolved} <span className="text-zinc-600">/ {leetcodeStats.totalEasy}</span></span>
+                              <span className="text-zinc-400">{leetcodeStats.easySolved || 0} <span className="text-zinc-600">/ {leetcodeStats.totalEasy || 0}</span></span>
                             </div>
                             <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
                               <div 
                                 className="h-full bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.4)]"
-                                style={{ width: `${(leetcodeStats.easySolved / leetcodeStats.totalEasy) * 100}%` }}
+                                style={{ width: `${leetcodeStats.totalEasy > 0 ? (leetcodeStats.easySolved / leetcodeStats.totalEasy) * 100 : 0}%` }}
                               />
                             </div>
                           </div>
@@ -2192,12 +2214,12 @@ function App() {
                           <div className="space-y-1.5">
                             <div className="flex justify-between text-xs font-mono">
                               <span className="text-yellow-500 font-bold uppercase text-[10px]">Medium</span>
-                              <span className="text-zinc-400">{leetcodeStats.mediumSolved} <span className="text-zinc-600">/ {leetcodeStats.totalMedium}</span></span>
+                              <span className="text-zinc-400">{leetcodeStats.mediumSolved || 0} <span className="text-zinc-600">/ {leetcodeStats.totalMedium || 0}</span></span>
                             </div>
                             <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
                               <div 
                                 className="h-full bg-yellow-500 rounded-full shadow-[0_0_8px_rgba(234,179,8,0.4)]"
-                                style={{ width: `${(leetcodeStats.mediumSolved / leetcodeStats.totalMedium) * 100}%` }}
+                                style={{ width: `${leetcodeStats.totalMedium > 0 ? (leetcodeStats.mediumSolved / leetcodeStats.totalMedium) * 100 : 0}%` }}
                               />
                             </div>
                           </div>
@@ -2206,12 +2228,12 @@ function App() {
                           <div className="space-y-1.5">
                             <div className="flex justify-between text-xs font-mono">
                               <span className="text-red-500 font-bold uppercase text-[10px]">Hard</span>
-                              <span className="text-zinc-400">{leetcodeStats.hardSolved} <span className="text-zinc-600">/ {leetcodeStats.totalHard}</span></span>
+                              <span className="text-zinc-400">{leetcodeStats.hardSolved || 0} <span className="text-zinc-600">/ {leetcodeStats.totalHard || 0}</span></span>
                             </div>
                             <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
                               <div 
                                 className="h-full bg-red-600 rounded-full shadow-[0_0_8px_rgba(220,38,38,0.4)]"
-                                style={{ width: `${(leetcodeStats.hardSolved / leetcodeStats.totalHard) * 100}%` }}
+                                style={{ width: `${leetcodeStats.totalHard > 0 ? (leetcodeStats.hardSolved / leetcodeStats.totalHard) * 100 : 0}%` }}
                               />
                             </div>
                           </div>
