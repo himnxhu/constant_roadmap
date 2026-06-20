@@ -5,6 +5,7 @@ import {
   ROADMAP_WEEKS 
 } from './data/roadmapData';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
+import { getLeetcodeStats } from './leetcodeTelemetry';
 import { 
   BookOpen, 
   CheckSquare, 
@@ -113,8 +114,187 @@ function App() {
     notes: ''
   });
 
+  // LeetCode Tracking States
+  const [leetcodeUsername, setLeetcodeUsername] = useState(() => {
+    return localStorage.getItem('himanshu_roadmap_leetcode_username') || '';
+  });
+  const [leetcodeStats, setLeetcodeStats] = useState(() => {
+    const saved = localStorage.getItem('himanshu_roadmap_leetcode_stats');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [isLeetcodeLoading, setIsLeetcodeLoading] = useState(false);
+  const [leetcodeError, setLeetcodeError] = useState(null);
+  const [leetcodeGoal, setLeetcodeGoal] = useState(() => {
+    const saved = localStorage.getItem('himanshu_roadmap_leetcode_goal');
+    return saved ? JSON.parse(saved) : { easy: 5, medium: 5, hard: 1 };
+  });
+
+  // Save LeetCode profile to local state, localStorage, and metadata
+  const saveLeetcodeProfile = async (username, stats, goal) => {
+    setLeetcodeUsername(username);
+    setLeetcodeStats(stats);
+    setLeetcodeGoal(goal);
+    
+    localStorage.setItem('himanshu_roadmap_leetcode_username', username);
+    if (stats) localStorage.setItem('himanshu_roadmap_leetcode_stats', JSON.stringify(stats));
+    localStorage.setItem('himanshu_roadmap_leetcode_goal', JSON.stringify(goal));
+    
+    if (supabase && user) {
+      try {
+        await supabase.auth.updateUser({
+          data: {
+            leetcode_username: username,
+            leetcode_stats: stats,
+            leetcode_goal: goal
+          }
+        });
+      } catch (err) {
+        console.error("Failed to sync LeetCode profile to Supabase metadata:", err);
+      }
+    }
+  };
+
+  const triggerLeetcodeSync = async (username, showToastNotification = true) => {
+    if (!username) return;
+    setIsLeetcodeLoading(true);
+    setLeetcodeError(null);
+    try {
+      const stats = await getLeetcodeStats(username);
+      await saveLeetcodeProfile(username, stats, leetcodeGoal);
+      if (showToastNotification) {
+        showToast(
+          stats.isSimulated 
+            ? `Connected Simulated Telemetry for ${username}!` 
+            : `Synchronized LeetCode stats for ${username}!`
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      setLeetcodeError(err.message || 'Failed to sync LeetCode statistics');
+      if (showToastNotification) {
+        showToast('Error syncing LeetCode stats.');
+      }
+    } finally {
+      setIsLeetcodeLoading(false);
+    }
+  };
+
+  const handleDisconnectLeetcode = async () => {
+    if (window.confirm("Are you sure you want to disconnect your LeetCode profile?")) {
+      setLeetcodeUsername('');
+      setLeetcodeStats(null);
+      localStorage.removeItem('himanshu_roadmap_leetcode_username');
+      localStorage.removeItem('himanshu_roadmap_leetcode_stats');
+      
+      if (supabase && user) {
+        try {
+          await supabase.auth.updateUser({
+            data: {
+              leetcode_username: null,
+              leetcode_stats: null
+            }
+          });
+          showToast('LeetCode profile disconnected from account.');
+        } catch (err) {
+          console.error(err);
+        }
+      } else {
+        showToast('LeetCode profile disconnected.');
+      }
+    }
+  };
+
+  const getContributionGridData = () => {
+    if (!leetcodeStats || !leetcodeStats.submissionCalendar) return [];
+    
+    const cal = leetcodeStats.submissionCalendar;
+    const totalDays = 26 * 7;
+    const gridData = [];
+    
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    const currentDayOfWeek = today.getDay();
+    const daysOffset = 6 - currentDayOfWeek;
+    
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + daysOffset);
+    
+    const startDate = new Date(endDate);
+    startDate.setDate(endDate.getDate() - totalDays + 1);
+    
+    let currentDate = new Date(startDate);
+    
+    for (let i = 0; i < totalDays; i++) {
+      const dateStr = currentDate.toDateString();
+      const dateCopy = new Date(currentDate);
+      dateCopy.setHours(0,0,0,0);
+      const timestampSecs = Math.floor(dateCopy.getTime() / 1000);
+      
+      let count = 0;
+      Object.keys(cal).forEach(ts => {
+        const keyTs = parseInt(ts);
+        if (Math.abs(keyTs - timestampSecs) < 43200) {
+          count += cal[ts];
+        }
+      });
+      
+      gridData.push({
+        date: new Date(currentDate),
+        dateStr,
+        count
+      });
+      
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return gridData;
+  };
+
+  const handleUpdateGoal = (type, action) => {
+    const newGoal = { ...leetcodeGoal };
+    if (action === 'increment') {
+      newGoal[type] += 1;
+    } else if (action === 'decrement' && newGoal[type] > 0) {
+      newGoal[type] -= 1;
+    }
+    saveLeetcodeProfile(leetcodeUsername, leetcodeStats, newGoal);
+  };
+
   const [steamParticles, setSteamParticles] = useState([]);
   const steamContainerRef = useRef(null);
+
+  // Sync LeetCode profile from Supabase user_metadata when user logs in/out
+  useEffect(() => {
+    if (user) {
+      const metaUsername = user.user_metadata?.leetcode_username;
+      const metaGoal = user.user_metadata?.leetcode_goal;
+      const metaStats = user.user_metadata?.leetcode_stats;
+      
+      if (metaUsername) {
+        setLeetcodeUsername(metaUsername);
+        localStorage.setItem('himanshu_roadmap_leetcode_username', metaUsername);
+      }
+      if (metaGoal) {
+        setLeetcodeGoal(metaGoal);
+        localStorage.setItem('himanshu_roadmap_leetcode_goal', JSON.stringify(metaGoal));
+      }
+      if (metaStats) {
+        setLeetcodeStats(metaStats);
+        localStorage.setItem('himanshu_roadmap_leetcode_stats', JSON.stringify(metaStats));
+      } else if (metaUsername) {
+        triggerLeetcodeSync(metaUsername, false);
+      }
+    } else {
+      const localUsername = localStorage.getItem('himanshu_roadmap_leetcode_username') || '';
+      const localStats = localStorage.getItem('himanshu_roadmap_leetcode_stats');
+      const localGoal = localStorage.getItem('himanshu_roadmap_leetcode_goal');
+      
+      setLeetcodeUsername(localUsername);
+      setLeetcodeStats(localStats ? JSON.parse(localStats) : null);
+      setLeetcodeGoal(localGoal ? JSON.parse(localGoal) : { easy: 5, medium: 5, hard: 1 });
+    }
+  }, [user]);
 
   // Listen to Auth State Changes & Fetch Sync
   useEffect(() => {
@@ -151,6 +331,14 @@ function App() {
           confidence: '',
           notes: ''
         })));
+
+        // Clear LeetCode session
+        const localUsername = localStorage.getItem('himanshu_roadmap_leetcode_username') || '';
+        const localStats = localStorage.getItem('himanshu_roadmap_leetcode_stats');
+        const localGoal = localStorage.getItem('himanshu_roadmap_leetcode_goal');
+        setLeetcodeUsername(localUsername);
+        setLeetcodeStats(localStats ? JSON.parse(localStats) : null);
+        setLeetcodeGoal(localGoal ? JSON.parse(localGoal) : { easy: 5, medium: 5, hard: 1 });
       }
     });
 
@@ -631,6 +819,14 @@ function App() {
               }`}
             >
               <BookOpen className="w-3.5 h-3.5" /> Study Library
+            </button>
+            <button 
+              onClick={() => setActiveTab('leetcode')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                activeTab === 'leetcode' ? 'bg-brass-glow/20 text-brass-light border-b border-brass-light/60 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <Award className="w-3.5 h-3.5" /> LeetCode Telemetry
             </button>
           </nav>
         </div>
@@ -1784,6 +1980,459 @@ function App() {
                 </div>
               </div>
             </div>
+
+          </div>
+        )}
+
+        {/* ================== TAB: LEETCODE GRIND TELEMETRY ================== */}
+        {activeTab === 'leetcode' && (
+          <div className="space-y-6 animate-fadeIn">
+            
+            {/* HUB HEADER CARD */}
+            <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-6 shadow-lg backdrop-blur-md relative overflow-hidden">
+              <div className="absolute right-0 top-0 w-32 h-32 bg-brass-glow/5 rounded-full blur-3xl pointer-events-none" />
+              
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h2 className="text-lg font-bold font-display text-white flex items-center gap-2">
+                    LeetCode Grind Telemetry Hub
+                    {leetcodeStats && (
+                      <span className={`text-[9px] px-2 py-0.5 rounded-full border uppercase font-mono tracking-wider font-semibold animate-pulse-short ${
+                        leetcodeStats.isSimulated 
+                          ? 'bg-amber-950/40 border-amber-500/40 text-amber-400' 
+                          : 'bg-green-950/40 border-green-500/40 text-green-400'
+                      }`}>
+                        {leetcodeStats.isSimulated ? 'Simulated Link' : 'Live Sync Active'}
+                      </span>
+                    )}
+                  </h2>
+                  <p className="text-xs text-zinc-400">Establish a live telemetry feed with LeetCode API to monitor solve counts and grind activity.</p>
+                </div>
+                
+                {leetcodeUsername && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => triggerLeetcodeSync(leetcodeUsername, true)}
+                      disabled={isLeetcodeLoading}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white rounded-lg text-xs font-medium transition-all disabled:opacity-50 cursor-pointer"
+                      title="Sync Stats"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isLeetcodeLoading ? 'animate-spin' : ''}`} />
+                      Sync
+                    </button>
+                    <button
+                      onClick={handleDisconnectLeetcode}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950/20 border border-red-900/40 hover:bg-red-905/20 text-red-400 rounded-lg text-xs font-medium transition-all cursor-pointer"
+                      title="Disconnect Profile"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      Disconnect
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* UNCONNECTED STATE */}
+            {!leetcodeUsername ? (
+              <div className="max-w-md mx-auto bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-6 shadow-2xl space-y-6 backdrop-blur-md relative overflow-hidden">
+                <div className="absolute left-1/2 -translate-x-1/2 -top-12 w-24 h-24 bg-brass-glow/10 rounded-full blur-2xl pointer-events-none" />
+                
+                <div className="text-center space-y-2">
+                  <div className="inline-flex p-3 rounded-full bg-brass-glow/10 border border-brass-light/20 text-brass-light shadow-[0_0_15px_rgba(217,119,6,0.1)]">
+                    <Award className="w-6 h-6 animate-pulse-short" />
+                  </div>
+                  <h3 className="text-sm font-bold font-display text-white uppercase tracking-wider">
+                    Engage LeetCode Link
+                  </h3>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed max-w-xs mx-auto">
+                    Enter your LeetCode handle below to load stats and track weekly problem solving goals.
+                  </p>
+                </div>
+
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const input = e.target.username.value.trim();
+                    if (input) triggerLeetcodeSync(input, true);
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="space-y-1">
+                    <label className="text-[9px] text-zinc-500 font-mono uppercase block">LeetCode Username</label>
+                    <input 
+                      name="username"
+                      type="text" 
+                      required 
+                      defaultValue={leetcodeUsername}
+                      placeholder="e.g. himanshu_codes"
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brass-light text-xs transition-all font-mono"
+                    />
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={isLeetcodeLoading}
+                    className="w-full py-2 bg-brass-glow text-white font-bold rounded-lg hover:bg-brass-glow/90 active:scale-95 transition-all shadow-[0_0_15px_rgba(217,119,6,0.2)] disabled:opacity-50 text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    {isLeetcodeLoading ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        Synchronizing Telemetry...
+                      </>
+                    ) : (
+                      <>
+                        <CloudLightning className="w-3.5 h-3.5" />
+                        Ignite Link
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                <div className="p-3 bg-zinc-900/60 border border-zinc-800/60 rounded-lg text-[10px] text-zinc-500 leading-normal flex gap-2">
+                  <Info className="w-3.5 h-3.5 text-brass-light shrink-0 mt-0.5" />
+                  <span>
+                    Note: Community CORS gateways can sometimes be slow or rate-limited. If public endpoints timeout, the hub automatically initiates simulated telemetry to preserve the dashboard. Type <strong className="text-zinc-400">demo</strong> or <strong className="text-zinc-400">debug_user</strong> to force test mock stats.
+                  </span>
+                </div>
+              </div>
+            ) : (
+              /* CONNECTED STATUS CONTENT */
+              <div className="space-y-6">
+                
+                {/* LOADING LOADER */}
+                {isLeetcodeLoading && !leetcodeStats && (
+                  <div className="py-24 flex flex-col items-center justify-center gap-4">
+                    <div className="relative">
+                      <RefreshCw className="w-8 h-8 text-brass-light animate-spin" />
+                      <div className="absolute inset-0 w-8 h-8 rounded-full border border-brass-light/20 border-t-transparent animate-ping" />
+                    </div>
+                    <p className="text-xs text-zinc-400 font-mono tracking-wider uppercase">Receiving Telemetry Packets...</p>
+                  </div>
+                )}
+
+                {/* ERROR PANEL */}
+                {leetcodeError && (
+                  <div className="p-4 bg-red-955/20 border border-red-900/40 text-red-400 rounded-lg text-xs leading-relaxed text-center space-y-2 max-w-md mx-auto">
+                    <p>⚠️ Error establishing communication: {leetcodeError}</p>
+                    <button 
+                      onClick={() => triggerLeetcodeSync(leetcodeUsername, true)}
+                      className="px-3 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] uppercase font-bold text-red-400 rounded transition-all cursor-pointer"
+                    >
+                      Retry Connection
+                    </button>
+                  </div>
+                )}
+
+                {/* STATS DASHBOARD IF PRESENT */}
+                {leetcodeStats && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    {/* LEFT PANEL: NIXIE GAUGES & DIFFICULTIES */}
+                    <div className="lg:col-span-1 space-y-6">
+                      
+                      {/* Nixie Stats */}
+                      <div className="grid grid-cols-2 gap-4">
+                        
+                        {/* Nixie Rank */}
+                        <div className="nixie-tube rounded-xl p-4 flex flex-col justify-between min-h-[100px]">
+                          <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider">Global Ranking</span>
+                          <span className="text-xl font-bold tracking-widest text-orange-400 font-mono mt-2 block select-none">
+                            {leetcodeStats.ranking.toLocaleString()}
+                          </span>
+                          <div className="glass-reflection absolute inset-0 rounded-xl" />
+                        </div>
+
+                        {/* Nixie Solved */}
+                        <div className="nixie-tube rounded-xl p-4 flex flex-col justify-between min-h-[100px]">
+                          <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider">Total Solved</span>
+                          <span className="text-xl font-bold tracking-widest text-orange-400 font-mono mt-2 block select-none">
+                            {leetcodeStats.totalSolved} <span className="text-[10px] text-zinc-500">/ {leetcodeStats.totalQuestions}</span>
+                          </span>
+                          <div className="glass-reflection absolute inset-0 rounded-xl" />
+                        </div>
+
+                      </div>
+
+                      {/* Acceptance Rate and Reputation */}
+                      <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-5 shadow-lg relative overflow-hidden flex items-center justify-between">
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider">Acceptance Rate</span>
+                          <div className="text-lg font-bold text-white font-mono">{leetcodeStats.acceptanceRate}%</div>
+                        </div>
+                        <div className="h-10 w-px bg-zinc-900" />
+                        <div className="space-y-1 text-right">
+                          <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider font-mono">Reputation Points</span>
+                          <div className="text-lg font-bold text-brass-light font-mono">{leetcodeStats.reputation}</div>
+                        </div>
+                      </div>
+
+                      {/* Difficulty Solving Gauges */}
+                      <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-5 shadow-lg space-y-4">
+                        <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono border-b border-zinc-900 pb-2">
+                          Solved Breakdown
+                        </h4>
+
+                        <div className="space-y-4">
+                          {/* Easy */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-xs font-mono">
+                              <span className="text-green-400 font-bold uppercase text-[10px]">Easy</span>
+                              <span className="text-zinc-400">{leetcodeStats.easySolved} <span className="text-zinc-600">/ {leetcodeStats.totalEasy}</span></span>
+                            </div>
+                            <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                              <div 
+                                className="h-full bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.4)]"
+                                style={{ width: `${(leetcodeStats.easySolved / leetcodeStats.totalEasy) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Medium */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-xs font-mono">
+                              <span className="text-yellow-500 font-bold uppercase text-[10px]">Medium</span>
+                              <span className="text-zinc-400">{leetcodeStats.mediumSolved} <span className="text-zinc-600">/ {leetcodeStats.totalMedium}</span></span>
+                            </div>
+                            <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                              <div 
+                                className="h-full bg-yellow-500 rounded-full shadow-[0_0_8px_rgba(234,179,8,0.4)]"
+                                style={{ width: `${(leetcodeStats.mediumSolved / leetcodeStats.totalMedium) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Hard */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-xs font-mono">
+                              <span className="text-red-500 font-bold uppercase text-[10px]">Hard</span>
+                              <span className="text-zinc-400">{leetcodeStats.hardSolved} <span className="text-zinc-600">/ {leetcodeStats.totalHard}</span></span>
+                            </div>
+                            <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                              <div 
+                                className="h-full bg-red-600 rounded-full shadow-[0_0_8px_rgba(220,38,38,0.4)]"
+                                style={{ width: `${(leetcodeStats.hardSolved / leetcodeStats.totalHard) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* RIGHT PANEL: GOAL TRACKER & CALENDAR */}
+                    <div className="lg:col-span-2 space-y-6">
+                      
+                      {/* Weekly Goal Tracker */}
+                      <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-5 shadow-lg space-y-5">
+                        <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
+                          <div>
+                            <h3 className="text-xs font-bold font-display text-white uppercase tracking-wider flex items-center gap-1.5">
+                              <Target className="w-4 h-4 text-brass-light" />
+                              Week {selectedWeek} Grind Targets
+                            </h3>
+                            <p className="text-[10px] text-zinc-500 mt-0.5">Track your solves from the DSA Logbook against your goals.</p>
+                          </div>
+                          <span className="text-[10px] font-mono px-2 py-0.5 bg-brass-glow/10 border border-brass-light/20 text-brass-light rounded">
+                            DSA Log Linked
+                          </span>
+                        </div>
+
+                        {/* Targets grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          
+                          {/* Easy Goal Card */}
+                          <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-lg p-4 space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-bold text-green-400 uppercase font-mono">Easy Goal</span>
+                              <div className="flex items-center gap-1">
+                                <button 
+                                  onClick={() => handleUpdateGoal('easy', 'decrement')}
+                                  className="w-5 h-5 bg-zinc-800 text-zinc-400 rounded flex items-center justify-center hover:bg-zinc-700 text-xs transition-all cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <span className="w-6 text-center text-xs font-bold text-white font-mono">{leetcodeGoal.easy}</span>
+                                <button 
+                                  onClick={() => handleUpdateGoal('easy', 'increment')}
+                                  className="w-5 h-5 bg-zinc-800 text-zinc-400 rounded flex items-center justify-center hover:bg-zinc-700 text-xs transition-all cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-between items-end">
+                              <span className="text-2xl font-bold font-mono text-zinc-200">
+                                {getWeeklyDsaCount('Easy')}
+                                <span className="text-xs text-zinc-500 font-normal"> / {leetcodeGoal.easy}</span>
+                              </span>
+                              <span className="text-[10px] text-green-400 font-mono font-medium">
+                                {leetcodeGoal.easy > 0 ? Math.min(100, Math.round((getWeeklyDsaCount('Easy') / leetcodeGoal.easy) * 100)) : 100}%
+                              </span>
+                            </div>
+
+                            <div className="w-full h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-900">
+                              <div 
+                                className="h-full bg-green-500 rounded-full transition-all animate-pulse-short"
+                                style={{ width: `${leetcodeGoal.easy > 0 ? Math.min(100, (getWeeklyDsaCount('Easy') / leetcodeGoal.easy) * 100) : 100}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Medium Goal Card */}
+                          <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-lg p-4 space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-bold text-yellow-500 uppercase font-mono">Medium Goal</span>
+                              <div className="flex items-center gap-1">
+                                <button 
+                                  onClick={() => handleUpdateGoal('medium', 'decrement')}
+                                  className="w-5 h-5 bg-zinc-800 text-zinc-400 rounded flex items-center justify-center hover:bg-zinc-700 text-xs transition-all cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <span className="w-6 text-center text-xs font-bold text-white font-mono">{leetcodeGoal.medium}</span>
+                                <button 
+                                  onClick={() => handleUpdateGoal('medium', 'increment')}
+                                  className="w-5 h-5 bg-zinc-800 text-zinc-400 rounded flex items-center justify-center hover:bg-zinc-700 text-xs transition-all cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-between items-end">
+                              <span className="text-2xl font-bold font-mono text-zinc-200">
+                                {getWeeklyDsaCount('Medium')}
+                                <span className="text-xs text-zinc-500 font-normal"> / {leetcodeGoal.medium}</span>
+                              </span>
+                              <span className="text-[10px] text-yellow-500 font-mono font-medium">
+                                {leetcodeGoal.medium > 0 ? Math.min(100, Math.round((getWeeklyDsaCount('Medium') / leetcodeGoal.medium) * 100)) : 100}%
+                              </span>
+                            </div>
+
+                            <div className="w-full h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-900">
+                              <div 
+                                className="h-full bg-yellow-500 rounded-full transition-all animate-pulse-short"
+                                style={{ width: `${leetcodeGoal.medium > 0 ? Math.min(100, (getWeeklyDsaCount('Medium') / leetcodeGoal.medium) * 100) : 100}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Hard Goal Card */}
+                          <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-lg p-4 space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-bold text-red-500 uppercase font-mono">Hard Goal</span>
+                              <div className="flex items-center gap-1">
+                                <button 
+                                  onClick={() => handleUpdateGoal('hard', 'decrement')}
+                                  className="w-5 h-5 bg-zinc-800 text-zinc-400 rounded flex items-center justify-center hover:bg-zinc-700 text-xs transition-all cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <span className="w-6 text-center text-xs font-bold text-white font-mono">{leetcodeGoal.hard}</span>
+                                <button 
+                                  onClick={() => handleUpdateGoal('hard', 'increment')}
+                                  className="w-5 h-5 bg-zinc-800 text-zinc-400 rounded flex items-center justify-center hover:bg-zinc-700 text-xs transition-all cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-between items-end">
+                              <span className="text-2xl font-bold font-mono text-zinc-200">
+                                {getWeeklyDsaCount('Hard')}
+                                <span className="text-xs text-zinc-500 font-normal"> / {leetcodeGoal.hard}</span>
+                              </span>
+                              <span className="text-[10px] text-red-500 font-mono font-medium">
+                                {leetcodeGoal.hard > 0 ? Math.min(100, Math.round((getWeeklyDsaCount('Hard') / leetcodeGoal.hard) * 100)) : 100}%
+                              </span>
+                            </div>
+
+                            <div className="w-full h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-900">
+                              <div 
+                                className="h-full bg-red-650 rounded-full transition-all animate-pulse-short"
+                                style={{ width: `${leetcodeGoal.hard > 0 ? Math.min(100, (getWeeklyDsaCount('Hard') / leetcodeGoal.hard) * 100) : 100}%` }}
+                              />
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
+
+                      {/* Grind Contribution Grid */}
+                      <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-5 shadow-lg space-y-4">
+                        <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
+                          <h3 className="text-xs font-bold font-display text-white uppercase tracking-wider flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 text-brass-light" />
+                            The 180-Day Grind Activity
+                          </h3>
+                          <span className="text-[10px] text-zinc-500 font-mono">
+                            Submissions calendar
+                          </span>
+                        </div>
+
+                        {/* Contribution Grid Container */}
+                        <div className="py-2 overflow-x-auto no-scrollbar">
+                          <div className="min-w-[400px] flex gap-2">
+                            {/* Days labels */}
+                            <div className="flex flex-col justify-between text-[8px] text-zinc-600 font-mono pr-1 select-none h-[112px]">
+                              <span>Sun</span>
+                              <span>Tue</span>
+                              <span>Thu</span>
+                              <span>Sat</span>
+                            </div>
+                            
+                            {/* Grid cells */}
+                            <div className="grid grid-flow-col grid-rows-7 gap-1 flex-1">
+                              {getContributionGridData().map((day, idx) => {
+                                let color = "bg-zinc-900/60 border border-zinc-850/40";
+                                if (day.count > 0 && day.count <= 2) {
+                                  color = "bg-brass-glow/20 border border-brass-light/30 text-brass-light";
+                                } else if (day.count > 2 && day.count <= 4) {
+                                  color = "bg-brass-glow/55 border border-brass-light/55 text-orange-200";
+                                } else if (day.count > 4) {
+                                  color = "bg-brass-glow text-white shadow-[0_0_10px_rgba(217,119,6,0.5)]";
+                                }
+                                
+                                return (
+                                  <div 
+                                    key={idx} 
+                                    className={`w-[12px] h-[12px] rounded-sm transition-all hover:scale-125 cursor-pointer relative group shrink-0 ${color}`}
+                                  >
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-10 bg-zinc-950 border border-zinc-800 text-[9px] text-zinc-300 rounded px-2 py-0.5 whitespace-nowrap shadow-lg select-none">
+                                      {day.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} • {day.count} solved
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Grid Legend */}
+                        <div className="flex justify-between items-center text-[9px] font-mono text-zinc-500 pt-2 border-t border-zinc-900/60 select-none">
+                          <span>Last 6 Months Solves</span>
+                          <div className="flex items-center gap-1">
+                            <span>Less</span>
+                            <div className="w-2.5 h-2.5 rounded-sm bg-zinc-900 border border-zinc-800/40" />
+                            <div className="w-2.5 h-2.5 rounded-sm bg-brass-glow/20 border border-brass-light/30" />
+                            <div className="w-2.5 h-2.5 rounded-sm bg-brass-glow/55 border border-brass-light/55" />
+                            <div className="w-2.5 h-2.5 rounded-sm bg-brass-glow border shadow-[0_0_8px_rgba(217,119,6,0.3)]" />
+                            <span>More</span>
+                          </div>
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+                )}
+
+              </div>
+            )}
 
           </div>
         )}
