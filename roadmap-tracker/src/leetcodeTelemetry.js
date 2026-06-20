@@ -73,7 +73,7 @@ export function generateMockStats(username) {
 // Normalized Parser for API 1: LeetCode Stats API (JeremyTsaii)
 // Endpoint: https://leetcode-stats-api.herokuapp.com/<username>
 function parseStatsApi(data, username) {
-  if (data.status === 'error' || !data.totalSolved) {
+  if (data.status === 'error' || data.totalSolved === undefined) {
     throw new Error(data.message || 'Invalid stats data');
   }
 
@@ -102,10 +102,12 @@ function parseStatsApi(data, username) {
 // Endpoint 2: https://alfa-leetcode-api.onrender.com/<username>/solved
 function parseAlfaApi(solvedData, profileData, calendarData, username) {
   // If we don't have basic counts, fail
-  const totalSolved = solvedData.solvedProblem || solvedData.totalSolved || 0;
-  if (totalSolved === 0 && !solvedData.easySolved) {
-    throw new Error('Invalid Alfa API data');
+  const hasSolvedField = 'solvedProblem' in solvedData || 'totalSolved' in solvedData || 'easySolved' in solvedData;
+  if (!hasSolvedField) {
+    throw new Error('Invalid Alfa API data structure');
   }
+  
+  const totalSolved = solvedData.solvedProblem !== undefined ? solvedData.solvedProblem : (solvedData.totalSolved || 0);
 
   // Parse submission calendar
   // Alfa API can return calendar as a stringified object or structured array
@@ -122,6 +124,15 @@ function parseAlfaApi(solvedData, profileData, calendarData, username) {
     }
   }
 
+  let acceptanceRate = parseFloat(solvedData.acceptanceRate || 0);
+  if (acceptanceRate === 0 && solvedData.totalSubmissionNum && solvedData.acSubmissionNum) {
+    const totalAll = solvedData.totalSubmissionNum.find(x => x.difficulty === 'All');
+    const acAll = solvedData.acSubmissionNum.find(x => x.difficulty === 'All');
+    if (totalAll && acAll && totalAll.submissions > 0) {
+      acceptanceRate = parseFloat(((acAll.submissions / totalAll.submissions) * 100).toFixed(1));
+    }
+  }
+
   return {
     username,
     ranking: profileData?.ranking || solvedData.ranking || 999999,
@@ -133,7 +144,7 @@ function parseAlfaApi(solvedData, profileData, calendarData, username) {
     totalMedium: solvedData.totalMedium || 1620,
     hardSolved: solvedData.hardSolved || 0,
     totalHard: solvedData.totalHard || 860,
-    acceptanceRate: parseFloat(solvedData.acceptanceRate || 0),
+    acceptanceRate,
     contributionPoints: solvedData.contributionPoints || profileData?.contributionPoints || 0,
     reputation: profileData?.reputation || 0,
     submissionCalendar: parsedCalendar,
@@ -169,7 +180,7 @@ export async function getLeetcodeStats(username) {
     console.log(`🌐 [LeetCode Sync] Attempting API Gateway 2 (Alfa) for: ${cleanUsername}`);
     // Parallel fetches to speed up Render spinup
     const urls = [
-      `https://alfa-leetcode-api.onrender.com/userSolved?username=${cleanUsername}`,
+      `https://alfa-leetcode-api.onrender.com/${cleanUsername}/solved`,
       `https://alfa-leetcode-api.onrender.com/${cleanUsername}`,
       `https://alfa-leetcode-api.onrender.com/${cleanUsername}/calendar`
     ];
