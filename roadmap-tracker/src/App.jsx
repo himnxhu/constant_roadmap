@@ -15,6 +15,7 @@ import WeeklyLogs from './pages/WeeklyLogs';
 import DsaAttempts from './pages/DsaAttempts';
 import Sources from './pages/Sources';
 import LeetcodeHub from './pages/LeetcodeHub';
+import NeetcodeRoadmap from './pages/NeetcodeRoadmap';
 
 // Icons
 import { 
@@ -30,7 +31,8 @@ import {
   FileText,
   Award,
   CloudLightning,
-  CloudOff
+  CloudOff,
+  GitMerge
 } from 'lucide-react';
 
 import './App.css';
@@ -876,6 +878,14 @@ function App() {
               <BookOpen className="w-3.5 h-3.5" /> Study Library
             </button>
             <button 
+              onClick={() => setActiveTab('neetcode')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold font-mono transition-all uppercase tracking-wider ${
+                activeTab === 'neetcode' ? 'bg-brass-glow/20 text-brass-light border-b border-brass-light/60 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <GitMerge className="w-3.5 h-3.5 rotate-90" /> NeetCode Map
+            </button>
+            <button 
               onClick={() => setActiveTab('leetcode')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold font-mono transition-all uppercase tracking-wider ${
                 activeTab === 'leetcode' ? 'bg-brass-glow/20 text-brass-light border-b border-brass-light/60 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
@@ -1006,6 +1016,10 @@ function App() {
             saveLeetcodeProfile={saveLeetcodeProfile}
             weeks={roadmap?.weeks || []}
           />
+        )}
+
+        {activeTab === 'neetcode' && (
+          <NeetcodeRoadmap />
         )}
 
       </main>
