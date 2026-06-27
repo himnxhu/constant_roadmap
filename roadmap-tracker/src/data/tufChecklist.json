@@ -1,35 +1,45 @@
 [
   {
-    "category": "Arrays",
+    "category": "Arrays - Medium",
     "problems": [
+      "Two Sum",
+      "Sort an array of 0's 1's and 2's",
       "Majority Element-I",
-      "Leaders in an Array",
+      "Kadane's Algorithm",
       "Rearrange array elements by sign",
-      "Print the matrix in spiral manner",
+      "Leaders in an Array",
+      "Next Permutation",
+      "Longest Consecutive Sequence in an Array",
+      "Rotate matrix by 90 degrees",
+      "Print the matrix in spiral manner"
+    ]
+  },
+  {
+    "category": "Arrays - Hard",
+    "problems": [
       "Pascal's Triangle I",
       "Pascal's Triangle II",
       "Pascal's Triangle III",
-      "Rotate matrix by 90 degrees",
-      "Two Sum",
+      "Majority Element-II",
       "3 Sum",
       "4 Sum",
-      "Sort an array of 0's 1's and 2's",
-      "Kadane's Algorithm",
-      "Next Permutation",
-      "Majority Element-II",
+      "Merge two sorted arrays without extra space",
       "Find the repeating and missing number",
       "Count Inversions",
       "Reverse Pairs",
-      "Maximum Product Subarray in an Array",
-      "Merge two sorted arrays without extra space",
-      "Longest Consecutive Sequence in an Array",
+      "Maximum Product Subarray in an Array"
+    ]
+  },
+  {
+    "category": "Hashing",
+    "problems": [
       "Longest subarray with sum K",
       "Count subarrays with given sum",
       "Count subarrays with given xor K"
     ]
   },
   {
-    "category": "Binary Search",
+    "category": "Binary Search - 1D & Logic",
     "problems": [
       "Search X in sorted array",
       "Lower Bound",
@@ -43,17 +53,27 @@
       "Find out how many times the array is rotated",
       "Single element in sorted array",
       "Find square root of a number",
-      "Find Nth root of a number",
+      "Find Nth root of a number"
+    ]
+  },
+  {
+    "category": "Binary Search - On Answers",
+    "problems": [
       "Find the smallest divisor",
       "Koko eating bananas",
       "Minimum days to make M bouquets",
       "Aggressive Cows",
       "Book Allocation Problem",
+      "Split array - largest sum",
       "Find peak element",
       "Median of 2 sorted arrays",
       "Kth element of 2 sorted arrays",
-      "Minimize Max Distance to Gas Station",
-      "Split array - largest sum",
+      "Minimize Max Distance to Gas Station"
+    ]
+  },
+  {
+    "category": "Binary Search - 2D Arrays",
+    "problems": [
       "Find row with maximum 1's",
       "Search in a 2D matrix",
       "Search in 2D matrix - II",
@@ -84,7 +104,7 @@
     ]
   },
   {
-    "category": "Linked List",
+    "category": "Linked List - Singly LL",
     "problems": [
       "Introduction to Singly LinkedList",
       "Traversal in Linked List",
@@ -97,7 +117,12 @@
       "Insertion at the head of Linked List",
       "Insertion at the tail of Linked List",
       "Insertion at the Kth position of Linked List",
-      "Insertion before the value X in Linked List",
+      "Insertion before the value X in Linked List"
+    ]
+  },
+  {
+    "category": "Linked List - Doubly LL",
+    "problems": [
       "Deletion in Doubly LL",
       "Insertion in DLL",
       "Convert Array to Doubly Linked List",
@@ -108,7 +133,12 @@
       "Insert node before head in Doubly Linked List",
       "Insert node before tail in Doubly Linked List",
       "Insert node before (kth node) in Doubly Linked List",
-      "Insert before given node in Doubly Linked List",
+      "Insert before given node in Doubly Linked List"
+    ]
+  },
+  {
+    "category": "Linked List - Medium & Hard",
+    "problems": [
       "Add two numbers in Linked List",
       "Segregate odd and even nodes in Linked List",
       "Sort a Linked List of 0's 1's and 2's",
@@ -146,17 +176,27 @@
     ]
   },
   {
-    "category": "Greedy",
+    "category": "Greedy - Easy",
     "problems": [
       "Assign Cookies",
       "Lemonade Change",
-      "Jump Game - I",
+      "Jump Game - I"
+    ]
+  },
+  {
+    "category": "Greedy - Scheduling & Interval",
+    "problems": [
       "Shortest Job First",
       "Job sequencing Problem",
       "N meetings in one room",
       "Non-overlapping Intervals",
       "Insert Interval",
-      "Minimum number of platforms required for a railway",
+      "Minimum number of platforms required for a railway"
+    ]
+  },
+  {
+    "category": "Greedy - Hard",
+    "problems": [
       "Valid Paranthesis Checker",
       "Candy"
     ]
@@ -177,7 +217,7 @@
     ]
   },
   {
-    "category": "Stack & Queues",
+    "category": "Stack & Queues - Basics",
     "problems": [
       "Implement Stack using Arrays",
       "Implement Queue using Arrays",
@@ -189,7 +229,7 @@
     ]
   },
   {
-    "category": "Monotonic Stack",
+    "category": "Stack & Queues - Monotonic Stack",
     "problems": [
       "Next Greater Element",
       "Next Greater Element - 2",
@@ -209,13 +249,21 @@
     ]
   },
   {
-    "category": "Binary Trees",
+    "category": "Binary Trees - Theory & Traversals",
     "problems": [
+      "Introduction",
       "Inorder Traversal",
       "Preorder Traversal",
       "Postorder Traversal",
       "Level Order Traversal",
       "Pre, Post, Inorder in one traversal",
+      "Morris Inorder Traversal",
+      "Morris Preorder Traversal"
+    ]
+  },
+  {
+    "category": "Binary Trees - Medium",
+    "problems": [
       "Maximum Depth in BT",
       "Check if two trees are identical or not",
       "Check for balanced binary tree",
@@ -227,7 +275,12 @@
       "Vertical Order Traversal",
       "Top View of BT",
       "Bottom view of BT",
-      "Right/Left View of BT",
+      "Right/Left View of BT"
+    ]
+  },
+  {
+    "category": "Binary Trees - FAQs & Hard",
+    "problems": [
       "Print root to node path in BT",
       "LCA in BT",
       "Maximum Width of BT",
@@ -237,9 +290,7 @@
       "Requirements needed to construct a unique BT",
       "Construct a BT from Preorder and Inorder",
       "Construct a BT from Postorder and Inorder",
-      "Serialize and De-serialize BT",
-      "Morris Inorder Traversal",
-      "Morris Preorder Traversal"
+      "Serialize and De-serialize BT"
     ]
   },
   {
@@ -277,7 +328,7 @@
     ]
   },
   {
-    "category": "Graphs",
+    "category": "Graphs - Theory & Traversals",
     "problems": [
       "Introduction to Graph",
       "Traversal Techniques",
@@ -289,12 +340,22 @@
       "Rotten Oranges",
       "Distance of nearest cell having one",
       "Surrounded Regions",
-      "Number of distinct islands",
+      "Number of distinct islands"
+    ]
+  },
+  {
+    "category": "Graphs - Cycles",
+    "problems": [
       "Detect a cycle in an undirected graph",
       "Bipartite graph",
       "Topological sort or Kahn's algorithm",
       "Detect a cycle in a directed graph",
-      "Find eventual safe states",
+      "Find eventual safe states"
+    ]
+  },
+  {
+    "category": "Graphs - Shortest Path",
+    "problems": [
       "Course Schedule I",
       "Course Schedule II",
       "Alien Dictionary",
@@ -311,7 +372,12 @@
       "Number of ways to arrive at destination",
       "Bellman ford algorithm",
       "Floyd warshall algorithm",
-      "Find the city with the smallest number of neighbors",
+      "Find the city with the smallest number of neighbors"
+    ]
+  },
+  {
+    "category": "Graphs - MST & Disjoint Set",
+    "problems": [
       "MST theory",
       "Disjoint Set",
       "Find the MST weight",
@@ -319,31 +385,42 @@
       "Accounts merge",
       "Number of islands II",
       "Making a large island",
-      "Most stones removed with same row or column",
+      "Most stones removed with same row or column"
+    ]
+  },
+  {
+    "category": "Graphs - Advanced Algorithms",
+    "problems": [
       "Kosaraju's algorithm",
       "Bridges in graph",
       "Articulation point in graph"
     ]
   },
   {
-    "category": "Dynamic Programming",
+    "category": "Dynamic Programming - 1D",
     "problems": [
+      "Introduction to DP",
       "Climbing stairs",
       "Frog Jump",
       "Frog jump with K distances",
       "Maximum sum of non adjacent elements",
-      "House robber",
+      "House robber"
+    ]
+  },
+  {
+    "category": "Dynamic Programming - Grids",
+    "problems": [
       "2D DP Ninja's training",
       "Grid unique paths",
       "Unique paths II",
       "Minimum Falling Path Sum",
       "Triangle",
-      "Cherry pickup II",
-      "Best time to buy and sell stock",
-      "Best time to buy and sell stock II",
-      "Best time to buy and sell stock III",
-      "Best time to buy and sell stock IV",
-      "Best time to buy and sell stock with transaction fees",
+      "Cherry pickup II"
+    ]
+  },
+  {
+    "category": "Dynamic Programming - Subsequences",
+    "problems": [
       "Subset sum equals to target",
       "Partition equal subset sum",
       "Partition a set into two subsets with minimum absolute sum difference",
@@ -354,13 +431,33 @@
       "Target sum",
       "Coin change II",
       "Unbounded knapsack",
-      "Rod cutting problem",
+      "Rod cutting problem"
+    ]
+  },
+  {
+    "category": "Dynamic Programming - Stocks",
+    "problems": [
+      "Best time to buy and sell stock",
+      "Best time to buy and sell stock II",
+      "Best time to buy and sell stock III",
+      "Best time to buy and sell stock IV",
+      "Best time to buy and sell stock with transaction fees"
+    ]
+  },
+  {
+    "category": "Dynamic Programming - LIS",
+    "problems": [
       "Longest Increasing Subsequence",
       "Print Longest Increasing Subsequence",
       "Largest Divisible Subset",
       "Longest String Chain",
       "Longest Bitonic Subsequence",
-      "Number of Longest Increasing Subsequences",
+      "Number of Longest Increasing Subsequences"
+    ]
+  },
+  {
+    "category": "Dynamic Programming - Strings",
+    "problems": [
       "Longest common subsequence",
       "Longest common substring",
       "Longest palindromic subsequence",
@@ -369,7 +466,12 @@
       "Shortest common supersequence",
       "Distinct subsequences",
       "Edit distance",
-      "Wildcard matching",
+      "Wildcard matching"
+    ]
+  },
+  {
+    "category": "Dynamic Programming - MCM",
+    "problems": [
       "Matrix chain multiplication",
       "Minimum cost to cut the stick",
       "Burst balloons",
@@ -388,7 +490,7 @@
     ]
   },
   {
-    "category": "Strings Advance Algos",
+    "category": "Strings - Advanced",
     "problems": [
       "Reverse every word in a string",
       "Minimum number of bracket reversals to make an expression balanced",
