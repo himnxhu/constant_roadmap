@@ -60,3 +60,166 @@ body {
 .glow-animation {
   animation: pulseGlow 4s infinite ease-in-out;
 }
+
+/* LIGHT THEME OVERRIDES */
+.light {
+  color-scheme: light;
+}
+
+.light body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.05) 0px, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(217, 119, 6, 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.04) 0px, transparent 50%) !important;
+}
+
+/* Background Overrides */
+.light .bg-zinc-950,
+.light .bg-zinc-950\/80,
+.light .bg-cyber-card,
+.light .bg-zinc-900,
+.light .bg-zinc-900\/50,
+.light .bg-zinc-900\/20,
+.light .bg-zinc-900\/40,
+.light .bg-zinc-900\/70,
+.light .bg-zinc-900\/80,
+.light .bg-zinc-900\/90,
+.light .bg-zinc-950\/40,
+.light .bg-zinc-950\/30 {
+  background-color: #ffffff !important;
+}
+
+.light .bg-cyber-bg {
+  background-color: #f8fafc !important;
+}
+
+.light .bg-zinc-850,
+.light .bg-zinc-800,
+.light .bg-zinc-800\/50,
+.light .bg-zinc-800\/20 {
+  background-color: #f1f5f9 !important;
+}
+
+/* Border Overrides */
+.light .border-zinc-800,
+.light .border-zinc-800\/80,
+.light .border-zinc-800\/60,
+.light .border-zinc-800\/40,
+.light .border-zinc-850,
+.light .border-zinc-850\/80,
+.light .border-zinc-850\/40,
+.light .border-zinc-805,
+.light .border-zinc-900,
+.light .border-zinc-700,
+.light .border-zinc-700\/80,
+.light .border-zinc-700\/60,
+.light .border-zinc-700\/40,
+.light .border-zinc-900\/40 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Text Overrides */
+.light .text-white,
+.light .text-zinc-100,
+.light .text-zinc-200,
+.light .text-zinc-300,
+.light .text-gray-200,
+.light .text-gray-100 {
+  color: #0f172a !important;
+}
+
+.light .text-zinc-400,
+.light .text-zinc-500,
+.light .text-gray-400,
+.light .text-gray-500 {
+  color: #475569 !important;
+}
+
+/* Inputs, Textareas, and Dropdowns */
+.light input,
+.light select,
+.light textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.light input::placeholder,
+.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+.light input:focus,
+.light select:focus,
+.light textarea:focus {
+  border-color: #d97706 !important;
+}
+
+/* Specific elements adjustments */
+.light header {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+.light nav {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light nav button:not(.bg-brass-glow\/20) {
+  color: #475569 !important;
+}
+
+.light nav button:not(.bg-brass-glow\/20):hover {
+  color: #0f172a !important;
+  background-color: #e2e8f0 !important;
+}
+
+/* Progress bar backgrounds */
+.light .bg-zinc-800\/60,
+.light .bg-zinc-800,
+.light .bg-zinc-850 {
+  background-color: #e2e8f0 !important;
+}
+
+/* Modals & Dialogs */
+.light .fixed.inset-0.bg-black\/60 {
+  background-color: rgba(15, 23, 42, 0.4) !important;
+}
+
+.light .fixed.inset-0.bg-black\/60 > div {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Green status banners / highlights */
+.light .bg-emerald-950\/30,
+.light .bg-emerald-950\/5 {
+  background-color: #f0fdf4 !important;
+}
+
+.light .border-emerald-900\/40,
+.light .border-emerald-950\/40,
+.light .border-emerald-900\/30 {
+  border-color: #bbf7d0 !important;
+}
+
+.light .text-emerald-400 {
+  color: #15803d !important;
+}
+
+/* Nixie Gauge custom contrast in Light Mode */
+.light .nixie-tube {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #d97706 !important;
+  text-shadow: none !important;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.06) !important;
+}
+
+.light .checkmark {
+  background-color: #f1f5f9;
+}

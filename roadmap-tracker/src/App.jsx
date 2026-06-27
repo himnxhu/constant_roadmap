@@ -33,13 +33,29 @@ import {
   Award,
   CloudLightning,
   CloudOff,
-  GitMerge
+  GitMerge,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 import './App.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('himanshu_roadmap_theme') || 'light';
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'light') {
+      root.classList.add('light');
+    } else {
+      root.classList.remove('light');
+    }
+    localStorage.setItem('himanshu_roadmap_theme', theme);
+  }, [theme]);
+
   const [user, setUser] = useState(null);
   
   // Auth states
@@ -907,6 +923,14 @@ function App() {
 
         {/* Database & Profile Connect Button on Right */}
         <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
+          <button 
+            onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+            className="p-2 border border-zinc-800 hover:border-zinc-700 bg-zinc-900 rounded-lg text-zinc-400 hover:text-white transition-all cursor-pointer flex items-center justify-center"
+            title={theme === 'light' ? "Switch to Dark Mode" : "Switch to Light Mode"}
+          >
+            {theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+          </button>
+
           <button 
             onClick={() => setIsEditingProfile(true)}
             className="p-2 border border-zinc-800 hover:border-zinc-700 bg-zinc-900 rounded-lg text-zinc-400 hover:text-white transition-all cursor-pointer"
